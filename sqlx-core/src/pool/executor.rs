@@ -8,6 +8,7 @@ use crate::describe::Describe;
 use crate::error::Error;
 use crate::executor::{Execute, Executor};
 use crate::pool::Pool;
+use logging_timer::{time};
 
 impl<'p, DB: Database> Executor<'p> for &'_ Pool<DB>
 where
@@ -36,6 +37,7 @@ where
         })
     }
 
+    #[time]
     fn fetch_optional<'e, 'q: 'e, E: 'q>(
         self,
         query: E,

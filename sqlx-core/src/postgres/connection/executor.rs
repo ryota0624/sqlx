@@ -18,6 +18,7 @@ use futures_core::stream::BoxStream;
 use futures_core::Stream;
 use futures_util::{pin_mut, TryStreamExt};
 use std::{borrow::Cow, sync::Arc};
+use logging_timer::{time,timer,executing};
 
 async fn prepare(
     conn: &mut PgConnection,
@@ -199,10 +200,15 @@ impl PgConnection {
         persistent: bool,
         metadata_opt: Option<Arc<PgStatementMetadata>>,
     ) -> Result<impl Stream<Item = Result<Either<PgQueryResult, PgRow>, Error>> + 'e, Error> {
+        let tmr = timer!("Executor.run");
+
         let mut logger = QueryLogger::new(query, self.log_settings.clone());
 
         // before we continue, wait until we are "ready" to accept more queries
+        executing!(tmr, "start wait_until_ready");
         self.wait_until_ready().await?;
+        executing!(tmr, "finished wait_until_ready");
+
 
         let mut metadata: Arc<PgStatementMetadata>;
 
@@ -220,7 +226,10 @@ impl PgConnection {
 
             // apply patches use fetch_optional thaht may produce `PortalSuspended` message,
             // consume messages til `ReadyForQuery` before bind and execute
+            executing!(tmr, "start wait_until_ready");
             self.wait_until_ready().await?;
+            executing!(tmr, "finished wait_until_ready");
+
 
             // bind to attach the arguments to the statement and create a portal
             self.stream.write(Bind {
@@ -263,6 +272,7 @@ impl PgConnection {
         self.stream.flush().await?;
 
         Ok(try_stream! {
+            executing!(tmr, "start try_stream");
             loop {
                 let message = self.stream.recv().await?;
 
@@ -362,6 +372,7 @@ impl<'c> Executor<'c> for &'c mut PgConnection {
         })
     }
 
+    #[time]
     fn fetch_optional<'e, 'q: 'e, E: 'q>(
         self,
         mut query: E,
