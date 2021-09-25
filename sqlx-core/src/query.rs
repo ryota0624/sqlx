@@ -11,6 +11,7 @@ use crate::error::Error;
 use crate::executor::{Execute, Executor};
 use crate::statement::Statement;
 use crate::types::Type;
+use logging_timer::{time};
 
 /// Raw SQL query with bind parameters. Returned by [`query`][crate::query::query].
 #[must_use = "query must be executed to affect database"]
@@ -376,6 +377,7 @@ where
     }
 
     /// Execute the query and returns at most one row.
+    // #[time]
     pub async fn fetch_optional<'e, 'c: 'e, E>(mut self, executor: E) -> Result<Option<O>, Error>
     where
         'q: 'e,

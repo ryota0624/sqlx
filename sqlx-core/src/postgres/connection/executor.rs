@@ -192,6 +192,7 @@ impl PgConnection {
         Ok(statement)
     }
 
+    #[time]
     async fn run<'e, 'c: 'e, 'q: 'e>(
         &'c mut self,
         query: &'q str,
