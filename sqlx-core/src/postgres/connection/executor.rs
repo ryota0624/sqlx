@@ -18,7 +18,7 @@ use futures_core::stream::BoxStream;
 use futures_core::Stream;
 use futures_util::{pin_mut, TryStreamExt};
 use std::{borrow::Cow, sync::Arc};
-use logging_timer::{time,timer,executing};
+use logging_timer::{time,timer,executing, finish};
 
 async fn prepare(
     conn: &mut PgConnection,
@@ -192,7 +192,6 @@ impl PgConnection {
         Ok(statement)
     }
 
-    #[time]
     async fn run<'e, 'c: 'e, 'q: 'e>(
         &'c mut self,
         query: &'q str,
@@ -339,7 +338,7 @@ impl PgConnection {
                     }
                 }
             }
-
+            finish!(tmr);
             Ok(())
         })
     }
@@ -373,7 +372,6 @@ impl<'c> Executor<'c> for &'c mut PgConnection {
         })
     }
 
-    #[time]
     fn fetch_optional<'e, 'q: 'e, E: 'q>(
         self,
         mut query: E,
